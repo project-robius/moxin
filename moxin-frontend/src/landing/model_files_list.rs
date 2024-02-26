@@ -10,7 +10,6 @@ live_design! {
 
     import crate::shared::styles::*;
     import crate::shared::widgets::*;
-    import crate::shared::icon::Icon;
     import crate::landing::shared::*;
 
     ICON_INFO = dep("crate://self/resources/icons/info.svg")

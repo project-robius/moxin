@@ -7,7 +7,6 @@ live_design! {
 
     import crate::shared::styles::*;
     import crate::shared::widgets::*;
-    import crate::shared::icon::Icon;
     import crate::landing::shared::*;
     import crate::landing::model_files_list::ModelFilesList;
 
