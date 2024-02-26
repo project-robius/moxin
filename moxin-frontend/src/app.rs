@@ -9,9 +9,10 @@ live_design! {
     import makepad_widgets::theme_desktop_dark::*;
 
     import crate::shared::styles::*;
+    import crate::shared::slide_panel_modal::SlidePanelModal;
     import crate::landing::landing_screen::LandingScreen;
     import crate::landing::model_all_files::ModelAllFiles;
-    import crate::shared::slide_panel_modal::SlidePanelModal;
+    import crate::chat::chat_screen::ChatScreen;
 
     ICON_EXPLORE = dep("crate://self/resources/icons/explore.svg")
     ICON_FOLDER = dep("crate://self/resources/icons/folder.svg")
@@ -82,6 +83,11 @@ live_design! {
                                 svg_file: (ICON_FOLDER),
                             }
                         }
+                        tab3 = <SidebarMenuButton> {
+                            draw_icon: {
+                                svg_file: (ICON_FOLDER),
+                            }
+                        }
                     }
 
                     application_pages = <View> {
@@ -95,6 +101,7 @@ live_design! {
 
                         tab1_frame = <LandingScreen> {visible: true}
                         tab2_frame = <MyModelsView> {visible: false}
+                        tab3_frame = <ChatScreen> {visible: false}
                     }
                 }
 
@@ -144,6 +151,8 @@ impl LiveRegister for App {
         crate::landing::model_list::live_design(cx);
         crate::landing::model_all_files::live_design(cx);
         crate::landing::landing_screen::live_design(cx);
+
+        crate::chat::chat_screen::live_design(cx);
     }
 }
 
@@ -160,6 +169,7 @@ impl MatchEvent for App {
         self.ui.radio_button_set(ids!(
             sidebar_menu.tab1,
             sidebar_menu.tab2,
+            sidebar_menu.tab3,
         ))
         .selected_to_visible(
             cx,
@@ -168,6 +178,7 @@ impl MatchEvent for App {
             ids!(
                 application_pages.tab1_frame,
                 application_pages.tab2_frame,
+                application_pages.tab3_frame,
             ),
         );
 
