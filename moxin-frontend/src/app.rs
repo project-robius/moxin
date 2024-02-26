@@ -122,19 +122,13 @@ live_design! {
 
 app_main!(App);
 
-#[derive(Live)]
+#[derive(Live, LiveHook)]
 pub struct App {
     #[live]
     ui: WidgetRef,
 
     #[rust]
     store: Store,
-}
-
-impl LiveHook for App {
-    fn after_new_from_doc(&mut self, _cx: &mut Cx) {
-        self.store = Store::new();
-    }
 }
 
 impl LiveRegister for App {
@@ -152,7 +146,10 @@ impl LiveRegister for App {
         crate::landing::model_all_files::live_design(cx);
         crate::landing::landing_screen::live_design(cx);
 
+        crate::chat::shared::live_design(cx);
         crate::chat::chat_screen::live_design(cx);
+        crate::chat::chat_list::live_design(cx);
+        crate::chat::chat_input::live_design(cx);
     }
 }
 
@@ -165,6 +162,10 @@ impl AppMain for App {
 }
 
 impl MatchEvent for App {
+    fn handle_startup(&mut self, _cx: &mut Cx) {
+        self.store = Store::new();
+    }
+
     fn handle_actions(&mut self, cx: &mut Cx, actions: &Actions){
         self.ui.radio_button_set(ids!(
             sidebar_menu.tab1,

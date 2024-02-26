@@ -5,6 +5,8 @@ live_design! {
     import makepad_widgets::theme_desktop_dark::*;
 
     import crate::shared::styles::*;
+    import crate::chat::chat_list::ChatList;
+    import crate::chat::chat_input::ChatInput;
 
     ChatScreen = {{ChatScreen}} {
         width: Fill,
@@ -15,7 +17,7 @@ live_design! {
             width: Fill,
             height: Fill,
             flow: Down,
-            margin: 50,
+            margin: 20,
             spacing: 30,
 
             <Label> {
@@ -25,6 +27,9 @@ live_design! {
                 }
                 text: "Chat"
             }
+
+            <ChatList> {}
+            <ChatInput> {}
         }
     }
 }
