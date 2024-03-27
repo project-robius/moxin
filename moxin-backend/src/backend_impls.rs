@@ -707,14 +707,13 @@ impl BackendImpl {
                             id,
                             file,
                             &self.models_dir,
-                            0.5,
+                            0.05,
                             &mut send_progress,
                         );
 
                         match r {
                             Ok(_) => {
                                 let local_path = format!("{}/{}", self.models_dir, file);
-
                                 let _ =
                                     tx.send(Ok(FileDownloadResponse::Completed(DownloadedFile {
                                         file: File {
