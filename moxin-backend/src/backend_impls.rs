@@ -496,8 +496,8 @@ mod chat_ui {
                 model_thread,
                 ..
             } = self;
-            drop(model_tx);
             let _ = model_thread.join();
+            drop(model_tx);
         }
     }
 }
@@ -1061,7 +1061,8 @@ impl BackendImpl {
                                 tx,
                             );
                             if let Some(old_model) = self.model.replace(model) {
-                                old_model.stop();
+                                //old_model.stop();
+                                old_model.stop_chat();
                             }
                         }
                         Err(e) => {
@@ -1071,7 +1072,8 @@ impl BackendImpl {
                 }
                 ModelInteractionCommand::EjectModel(tx) => {
                     if let Some(model) = self.model.take() {
-                        model.stop();
+                        //model.stop();
+                        model.stop_chat();
                     }
                     let _ = tx.send(Ok(()));
                 }
