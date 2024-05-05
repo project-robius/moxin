@@ -317,6 +317,22 @@ impl Store {
     }
 
     fn set_models(&mut self, models: Vec<Model>) {
+        let mut models = models.clone();
+
+        // Hack for demo purposes: set the first 3 files of each model as featured
+        // The backend is currently setting file.featured = false for all files,
+        // both on download and on search. We need to implement a mechanism to either dinamically
+        // feature files on the backend, or set the the feature flag in the admin UI.
+        for model in models.iter_mut() {
+            let mut featured_files = 0;
+            for file in model.files.iter_mut() {
+                if !file.featured && featured_files < 3 {
+                    file.featured = true;
+                    featured_files += 1;
+                }
+            }
+        }
+
         #[cfg(not(debug_assertions))]
         {
             self.models = models;
