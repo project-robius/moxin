@@ -357,8 +357,14 @@ impl Widget for ModelCard {
         self.label(id!(model_size_tag.attr_value)).set_text(size);
 
         let requires = &model.requires;
-        self.label(id!(model_requires_tag.attr_value))
-            .set_text(requires);
+        if requires.is_empty() {
+            self.label(id!(model_requires_tag.attr_value))
+            .set_text("8GB+ RAM");
+        } else {
+            self.label(id!(model_requires_tag.attr_value))
+            .set_text(&requires);
+        }
+        
 
         let architecture = &model.architecture;
         self.label(id!(model_architecture_tag.attr_value))

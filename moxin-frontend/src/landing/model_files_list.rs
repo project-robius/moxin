@@ -472,6 +472,7 @@ impl ModelFilesItems {
             let filename = &files[i].name;
             let size = format_model_size(&files[i].size).unwrap_or("-".to_string());
             let quantization = &files[i].quantization;
+            let is_quantization_visible =! quantization.is_empty();
             item_widget.apply_over(
                 cx,
                 live! {
@@ -480,7 +481,10 @@ impl ModelFilesItems {
                     }
                     cell2 = { full_size = { text: (size) }}
                     cell3 = {
-                        quantization_tag = { quantization = { text: (quantization) }}
+                        quantization_tag = {
+                            visible: (is_quantization_visible),
+                            quantization = { text: (quantization) }
+                        }
                     }
                 },
             );

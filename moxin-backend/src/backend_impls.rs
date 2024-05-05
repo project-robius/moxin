@@ -490,15 +490,15 @@ mod chat_ui {
                 .store(false, Ordering::Release);
         }
 
-        pub fn stop(self) {
-            let Self {
-                model_tx,
-                model_thread,
-                ..
-            } = self;
-            let _ = model_thread.join();
-            drop(model_tx);
-        }
+        // pub fn stop(self) {
+        //     let Self {
+        //         model_tx,
+        //         model_thread,
+        //         ..
+        //     } = self;
+        //     let _ = model_thread.join();
+        //     drop(model_tx);
+        // }
     }
 }
 
