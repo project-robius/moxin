@@ -93,7 +93,7 @@ impl Store {
 
             // If there is no chat, create an empty one
             if self.chats.get_current_chat().is_none() {
-                self.chats.create_empty_chat_with_model_file(file);
+                self.chats.create_empty_chat();
             }
         }
     }
@@ -102,44 +102,30 @@ impl Store {
         self.chats.set_current_chat(chat_id);
     }
 
-    pub fn get_loaded_model_file_id(&self) -> Option<FileID> {
-        self.chats
-            .get_current_chat()
-            .map(|chat| chat.borrow().file_id.clone())
-    }
-
     pub fn get_loaded_downloaded_file(&self) -> Option<DownloadedFile> {
-        if let Some(file_id) = self.get_loaded_model_file_id() {
+        self.chats.loaded_model.clone().and_then(|model| {
             self.downloads
                 .downloaded_files
                 .iter()
-                .find(|d| d.file.id == file_id)
+                .find(|d| d.file.id == model.id)
                 .cloned()
-        } else {
-            None
-        }
+        })
     }
 
     /// This function ensures that the model with the provided file ID is loaded
     /// in the current chat.
     /// It is necesary to cover cases where the model file is deleted by the user,
     /// but previous chat sessions refer to that file.
-    pub fn ensure_model_loaded_in_current_chat(&mut self, file_id: FileID) {
-        // Check if the current chat has loaded the provided file
-        // Do nothing if this is the case
+    pub fn ensure_model_loaded(&mut self, file_id: FileID) {
         if self
-            .get_loaded_model_file_id()
-            .map(|id| id == file_id)
+            .chats.loaded_model.as_ref()
+            .map(|file| file.id == file_id)
             .unwrap_or(false)
         {
             return;
         }
 
-        let Some(current_chat_id) = self.chats.get_current_chat_id() else {
-            return;
-        };
-
-        // Attempt to load the model in the current chat since it is not loaded
+        // Attempt to load the model since it is not loaded
         let available_files: Vec<File> = self
             .downloads
             .downloaded_files
@@ -148,8 +134,7 @@ impl Store {
             .collect();
 
         if let Some(file) = available_files.iter().find(|file| file.id == file_id) {
-            self.chats
-                .set_current_chat_and_load_model(current_chat_id, file);
+            let _ = self.chats.load_model(file);
         }
     }
 
@@ -209,6 +194,7 @@ impl Store {
     }
 
     pub fn delete_file(&mut self, file_id: FileID) -> Result<()> {
+        self.chats.eject_model_if_active(&file_id)?;
         self.downloads.delete_file(file_id.clone())?;
         self.search
             .update_downloaded_file_in_search_results(&file_id, false);
@@ -265,22 +251,13 @@ impl Store {
                 .collect();
 
             if let Some(file) = available_files.iter().find(|file| file.id == *file_id) {
-                if let Some(chat_id) = self.chats.get_latest_chat_id() {
-                    self.chats.set_current_chat_and_load_model(chat_id, file);
-                } else {
-                    self.chats.create_empty_chat_with_model_file(file);
-                }
-
-                return;
+                let _ = self.chats.load_model(file);
             }
         }
 
         if let Some(chat_id) = self.chats.get_latest_chat_id() {
             self.chats.set_current_chat(chat_id);
-        }
-
-        // If there is no chat, create an empty one
-        if self.chats.get_current_chat().is_none() {
+        } else {
             self.chats.create_empty_chat();
         }
     }
@@ -291,6 +268,8 @@ impl Store {
         // TODO Decide proper behavior when deleting the current chat
         // For now, we just create a new empty chat because we don't fully
         // support having no chat selected
-        self.init_current_chat();
+        if self.chats.get_current_chat().is_none() {
+            self.chats.create_empty_chat();
+        }
     }
 }

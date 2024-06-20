@@ -470,8 +470,9 @@ impl Widget for ChatPanel {
                     // Redraw because we expect to see new or updated chat entries
                     self.redraw(cx);
                 }
-                State::NoModelSelected => {
-                    self.unload_model(cx);
+                State::NoModelSelected | State::NoModelsAvailable => {
+                    self.model_selector(id!(model_selector)).deselect(cx);
+                    self.view.redraw(cx);
                 }
                 _ => {}
             }
@@ -511,20 +512,11 @@ impl WidgetMatchEvent for ChatPanel {
 
             match action.cast() {
                 ChatAction::Start(file_id) => {
-                    let downloaded_file = store
-                        .downloads
-                        .downloaded_files
-                        .iter()
-                        .find(|file| file.file.id == file_id)
-                        .expect("Attempted to start chat with a no longer existing file")
-                        .clone();
-
-                    store
-                        .chats
-                        .create_empty_chat_with_model_file(&downloaded_file.file);
+                    store.ensure_model_loaded(file_id);
+                    store.chats.create_empty_chat();
                 }
                 ChatAction::Resume(file_id) => {
-                    store.ensure_model_loaded_in_current_chat(file_id);
+                    store.ensure_model_loaded(file_id);
                 }
                 _ => {}
             }
@@ -539,17 +531,6 @@ impl WidgetMatchEvent for ChatPanel {
                     self.redraw(cx);
                 }
                 _ => {}
-            }
-
-            if let ChatPanelAction::UnloadIfActive(file_id) = action.cast() {
-                if store
-                    .chats
-                    .get_current_chat()
-                    .map_or(false, |chat| chat.borrow().file_id == file_id)
-                {
-                    self.unload_model(cx);
-                    store.chats.eject_model().expect("Failed to eject model");
-                }
             }
         }
 
@@ -717,11 +698,6 @@ impl ChatPanel {
         list.smooth_scroll_to_end(cx, 10, 80.0);
     }
 
-    fn unload_model(&mut self, cx: &mut Cx) {
-        self.model_selector(id!(model_selector)).deselect(cx);
-        self.view.redraw(cx);
-    }
-
     fn handle_prompt_input_actions(&mut self, cx: &mut Cx, actions: &Actions, scope: &mut Scope) {
         let prompt_input = self.text_input(id!(main_prompt_input.prompt));
         if let Some(_text) = prompt_input.changed(actions) {
@@ -769,7 +745,7 @@ impl ChatPanel {
 
                 self.view(id!(empty_conversation))
                     .label(id!(avatar_label))
-                    .set_text(&get_model_initial_letter(store).unwrap().to_string());
+                    .set_text(&get_model_initial_letter(store).unwrap_or('A').to_string());
             }
             _ => {}
         }
@@ -823,7 +799,7 @@ impl ChatPanel {
 
     fn draw_messages(&self, cx: &mut Cx2d, scope: &mut Scope, list: &mut RefMut<PortalList>) {
         let store = scope.data.get::<Store>().unwrap();
-        let messages = get_chat_messages(store).unwrap();
+        let Some(messages) = get_chat_messages(store) else { return };
         let messages_count = messages.len();
 
         list.set_item_range(cx, 0, messages_count);

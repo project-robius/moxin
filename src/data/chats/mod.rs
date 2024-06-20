@@ -50,6 +50,11 @@ impl Chats {
     }
 
     pub fn load_model(&mut self, file: &File) -> Result<()> {
+        // Do not load the model if it is already loaded
+        if self.loaded_model.as_ref().map_or(false, |m| *m.id == file.id) {
+            return Ok(());
+        }
+
         let (tx, rx) = channel();
         let cmd = Command::LoadModel(
             file.id.clone(),
@@ -105,18 +110,6 @@ impl Chats {
 
     pub fn set_current_chat(&mut self, chat_id: ChatID) {
         self.current_chat_id = Some(chat_id);
-    }
-
-    pub fn set_current_chat_and_load_model(&mut self, chat_id: ChatID, file: &File) {
-        self.current_chat_id = Some(chat_id);
-
-        if self
-            .loaded_model
-            .as_ref()
-            .map_or(true, |m| *m.id != file.id)
-        {
-            let _ = self.load_model(file);
-        }
     }
 
     pub fn send_chat_message(&mut self, prompt: String) {
@@ -186,38 +179,23 @@ impl Chats {
         Ok(())
     }
 
-    pub fn create_empty_chat(&mut self) {
-        if let Some(current_chat) = self.get_current_chat() {
-            let filename = current_chat.borrow().model_filename.clone();
-            let file_id = current_chat.borrow().file_id.clone();
-            let new_chat = RefCell::new(Chat::new(filename, file_id, self.chats_dir.clone()));
-
-            new_chat.borrow().save();
-
-            self.current_chat_id = Some(new_chat.borrow().id);
-            self.saved_chats.push(new_chat);
+    pub fn eject_model_if_active(&mut self, file_id: &FileID) -> Result<()> {
+        if let Some(model_file) = &self.loaded_model {
+            if model_file.id == *file_id {
+                self.eject_model()?
+            }
         }
+        Ok(())
     }
 
-    pub fn create_empty_chat_with_model_file(&mut self, file: &File) {
-        let new_chat = RefCell::new(Chat::new(
-            file.name.clone(),
-            file.id.clone(),
-            self.chats_dir.clone(),
-        ));
+    pub fn create_empty_chat(&mut self) {
+        let filename = self.loaded_model.as_ref().map_or("".to_string(), |m| m.name.clone());
+        let new_chat = RefCell::new(Chat::new(filename, self.chats_dir.clone()));
 
         new_chat.borrow().save();
 
         self.current_chat_id = Some(new_chat.borrow().id);
         self.saved_chats.push(new_chat);
-
-        if self
-            .loaded_model
-            .as_ref()
-            .map_or(true, |m| *m.id != file.id)
-        {
-            let _ = self.load_model(file);
-        }
     }
 
     pub fn remove_chat(&mut self, chat_id: ChatID) {
