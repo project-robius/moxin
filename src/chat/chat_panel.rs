@@ -470,9 +470,6 @@ impl Widget for ChatPanel {
                     // Redraw because we expect to see new or updated chat entries
                     self.redraw(cx);
                 }
-                State::NoModelSelected => {
-                    self.unload_model(cx);
-                }
                 _ => {}
             }
         }
@@ -521,10 +518,7 @@ impl WidgetMatchEvent for ChatPanel {
 
                     store
                         .chats
-                        .create_empty_chat_with_model_file(&downloaded_file.file);
-                }
-                ChatAction::Resume(file_id) => {
-                    store.ensure_model_loaded_in_current_chat(file_id);
+                        .create_empty_chat_and_load_file(&downloaded_file.file);
                 }
                 _ => {}
             }
@@ -544,10 +538,10 @@ impl WidgetMatchEvent for ChatPanel {
             if let ChatPanelAction::UnloadIfActive(file_id) = action.cast() {
                 if store
                     .chats
-                    .get_current_chat()
-                    .map_or(false, |chat| chat.borrow().file_id == file_id)
+                    .loaded_model
+                    .as_ref()
+                    .map_or(false, |file| file.id == file_id)
                 {
-                    self.unload_model(cx);
                     store.chats.eject_model().expect("Failed to eject model");
                 }
             }
@@ -717,10 +711,10 @@ impl ChatPanel {
         list.smooth_scroll_to_end(cx, 10, 80.0);
     }
 
-    fn unload_model(&mut self, cx: &mut Cx) {
-        self.model_selector(id!(model_selector)).deselect(cx);
-        self.view.redraw(cx);
-    }
+    // fn unload_model(&mut self, cx: &mut Cx) {
+    //     self.model_selector(id!(model_selector)).deselect(cx);
+    //     self.view.redraw(cx);
+    // }
 
     fn handle_prompt_input_actions(&mut self, cx: &mut Cx, actions: &Actions, scope: &mut Scope) {
         let prompt_input = self.text_input(id!(main_prompt_input.prompt));
@@ -769,7 +763,7 @@ impl ChatPanel {
 
                 self.view(id!(empty_conversation))
                     .label(id!(avatar_label))
-                    .set_text(&get_model_initial_letter(store).unwrap().to_string());
+                    .set_text(&get_model_initial_letter(store).unwrap_or('A').to_string());
             }
             _ => {}
         }
@@ -888,7 +882,7 @@ fn get_initial_letter(word: &str) -> Option<char> {
 
 fn get_model_initial_letter(store: &Store) -> Option<char> {
     let chat = get_chat(store)?;
-    let initial_letter = get_initial_letter(&chat.borrow().model_filename)?;
+    let initial_letter = store.get_last_used_file_initial_letter(chat.borrow().id)?;
     Some(initial_letter.to_ascii_uppercase())
 }
 
